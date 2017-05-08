@@ -5,7 +5,6 @@
 
 %Either ensure that "tomlab" is in your path on starting up matlab, or run the startup script when you start matlab, e.g. "run C:/apps/tomlab/startup.m"
 
-
 clc;
 clear all;
 %A few constants

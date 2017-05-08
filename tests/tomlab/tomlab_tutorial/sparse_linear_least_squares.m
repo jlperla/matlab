@@ -2,24 +2,24 @@
 
 clc;
 
-simulate_data = false; %toggles whether to load the simulated data or generate it.
+simulate_data = false; %toggles whether to load the simulated data from a file or generate it.  Can be slow to generate for large N
 
 %% Simulating data two-way fixed effect panel data.
 if(simulate_data)
 
-    N_i = 10000; %number of employees
-    N_f = 1000; %number of firms
+    N_i = 100000; %number of employees
+    N_f = 500; %number of firms
     N_fi_max = 10; %i.e. maximum of N_fi_max jobs  Actual number will be randomly drawn
 
-    % Genrate fixed effect for employees and firms.  Just scaling a uniform draw between 0 and 1
+    % Genrate fixed effect for employees and firms
     sigma_i = .2; %scales the size of employee fixed effect
     sigma_f = .1; %scales the size of firm fixed effect
     sigma_fi = 1.0; %scales size of match observable
     sigma_epsilon = .01; %scales size of normal random variable.
 
     %Generate random effects for employees and firms
-    theta_i = sigma_i * rand(N_i,1);
-    gamma_f = sigma_f * rand(N_f,1);
+    theta_i = normrnd(0, sigma_i, N_i, 1);
+    gamma_f = normrnd(0, sigma_f, N_f, 1);
 
     %True observable coefficients
     beta = [.1];
@@ -42,18 +42,18 @@ if(simulate_data)
     end
 
     %Generate observables for all the matches
-    C(:,1) = sigma_fi * rand(total_matches,1);
+    C(:,1) = normrnd(0, sigma_fi, total_matches,1);
 
     %Generate random normal shocks
-    epsilon = sigma_epsilon * normrnd(0,sigma_epsilon, total_matches, 1);
+    epsilon = normrnd(0,sigma_epsilon, total_matches, 1);
 
     %Simulate wages, use true cofficients and fixed effects
-    coefficients = [beta; theta_i; gamma_f]; %Stacking
+    x_true = [beta; theta_i; gamma_f]; %Stacking
 
-    w = sparse(C * coefficients + epsilon);
+    w = sparse(C * x_true + epsilon);
     
-    %Save the files
-    save('simulated_panel.mat', 'C', 'w', 'epsilon', 'coefficients');
+    %Save all variables to a file
+    save('simulated_panel.mat');
 
 else
     %Need to have saved off the panel prior to loading it.
@@ -67,6 +67,12 @@ end
 Prob = llsAssign(C, w, [], [], "LLS Example");
 
 Result = tomRun('Tlsqr', Prob, 1); %intended for sparse Sparse works well here.
-Result = tomRun('snopt', Prob, 1); %OK, but Tlsqr works great here.
+%Results vs. actual
+disp('Estimated');
+Result.x_k(1:length(beta))
+disp('Actual');
+beta
+
+%Result = tomRun('snopt', Prob, 1); %OK, but Tlsqr works great here.
 %Result = tomRun('lssol', Prob, 1); %Dense linear least squares.  Good but not for this sort of problem if N's are large
 %Result = tomRun('nlssol', Prob, 1); %'clsSolve' if constraint linear least squares.  Dense

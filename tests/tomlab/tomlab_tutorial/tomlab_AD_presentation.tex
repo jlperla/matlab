@@ -1,0 +1,191 @@
+\documentclass[nofootline]{etk-presentation}
+\usepackage{etk-bib} %Include this if you want a bibliography 
+\usepackage{tabularx,pbox}
+\usepackage{framed}
+\usepackage{empheq}
+\usepackage{pstool}
+\usepackage{verbatim}
+\usepackage{listings}
+
+\lstset{language=matlab,
+	basicstyle=\footnotesize,
+%	frame=single,
+	breaklines=true,
+	breakatwhitespace=true,
+%	numbers=left,
+%	numberstyle=\tiny,
+%	xleftmargin=5mm,
+	tabsize=2
+}
+
+\begin{document}
+\title{Optimization, Auto-Differentiation, and Tomlab}
+%\author[Jesse Perla]{\large Jesse Perla \\ {\small \textit{University of British Columbia}}}
+%	\date{May 2017}
+%\date{} %Shows date and conditionally the revision.	
+\maketitle
+\section{General}
+\begin{frame}[fragile]	\frametitle{Derivatives and Numerical Methods}
+	There are two general types of algorithms for optimizers/solvers/etc.:
+	\begin{enumerate}
+		\item Derivative-free:
+		\begin{itemize}
+			\item e.g. Simplex and Nelder-Mead.  This is Matlab's \verb|fminsearch|
+			\item Also, ``costly global function'' optimization
+			\item Avoid at all costs (though sometimes don't have a choice)
+		\end{itemize}
+	\bigskip
+		\item Derivatives
+		\begin{itemize}
+			\item Pretty much every other algorithm, especially for large number of variables/constraints
+			\item Including global optimization techniques (which use derivatives locally)
+		\end{itemize}	
+	\end{enumerate}
+\bigskip
+Key derivatives to calculate are:
+\begin{itemize}
+	\item Gradient of objective
+	\item Hessian of objective (nonlinear least squares and some algorithms only use gradient)
+	\item Jacobian of constraints
+\end{itemize}
+
+
+\end{frame}
+
+\begin{frame}[fragile]	\frametitle{Calculating Derivatives}
+How to calculate derivatives for the objective and constraints?
+\begin{enumerate}
+	\item Calculate by hand
+	\begin{itemize}
+		\item Sometimes, though not always, the most accurate and fastest option
+		\item But algebra is error prone for non-trivial setups
+		\item (note: many optimizers have a way to check your analytical derivatives)
+	\end{itemize}
+\bigskip
+	\item Finite-differences:
+	\begin{itemize}
+		\item $\D[x_i]f(x_1,\ldots x_N) \approx \frac{f(x_1,\ldots x_i + \Delta,\ldots x_N) - f(x_1,\ldots x_i,\ldots x_N)}{\Delta}$
+		\item Evaluates function at least $N$ extra times to get a gradient
+		\item \# evaluations for Jacobians with $M$ constraints even worse
+		\item Large $\Delta$ is numerically stable but inaccurate, small $\Delta$ is unstable
+		\item \textbf{Avoid like the plague!} (and is what matlab does out of the box)
+	\end{itemize}
+\bigskip
+	\item Auto-differentiation
+	\begin{itemize}
+		\item Not a form of finite-differences or numeric differentiation
+		\item Essentially analytical.  Repeated use of the chain-rule
+		\item Does not work for every function, but only evaluates $f(\cdot)$ once if it works
+	\end{itemize}
+\end{enumerate}
+\end{frame}
+
+
+\begin{frame}[fragile]	\frametitle{Auto-differentiation (adapted from Wikipedia)}
+	\begin{itemize}
+		\item Remember the chain rule: $\frac{dy}{dx} = \frac{dy}{dw} \frac{dw}{dx}$
+		\item Consider functions composed of calculations with fundamental operations (with known analytical derivatives)
+		\item For example, consider function: $f(x_1, x_2) = x_1 x_2 + \sin(x_1)$	
+	$$
+\begin{array}{l|l}
+\text{Operations to compute value} &
+\text{Operations to compute $\frac{d f(x_1,x_2)}{d x_1}$}
+\\
+\hline
+w_1 = x_1 &
+\frac{d w_1}{d x_1} = 1 \text{ (seed)}\\
+w_2 = x_2 &
+\frac{d  w_2}{d x_1} = 0 \text{ (seed)}
+\\
+w_3 = w_1 \cdot w_2 &
+\frac{d  w_3}{d x_1} = w_2 \cdot \frac{d  w_1}{d x_1} + w_1 \cdot \frac{d  w_2}{d x_1}
+\\
+w_4 = \sin w_1 &
+\frac{d  w_4}{d x_1} = \cos w_1 \cdot \frac{d  w_1}{d x_1}
+\\
+w_5 = w_3 + w_4 &
+\frac{d  w_5}{d x_1} = \frac{d  w_3}{d x_1} + \frac{d  w_4}{d x_1}
+\end{array}
+$$
+\item Generalizes to multiple variables.  AD takes source code and generates the derivatives at the same time (i.e. doesn't increase with \# variables)
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]	\frametitle{Implementations of AD}
+	\begin{itemize}
+		\item A field unto itself.  Do not implement directly
+		\item Implementation is language dependent.  Two approaches:
+		\begin{itemize}
+			\item \textit{Source code transformation:} utility (outside of the language itself) reads in the code for your function, and generates a function which calculates value and derivative.  Rerun if you change your code
+			\item \textit{Operator Overloading:} Takes your existing functions, and passes variables that act like numbers, but are actually recording and tracing the chain rule steps/etc.  Can be magical, or infuriating
+		\end{itemize}
+		\item Implementation depends on the language:
+		\begin{itemize}
+			\item \textit{Fortran:} usually needs SCT.  Many choices: e.g. \url{http://tapenade.inria.fr:8080/tapenade/index.jsp}
+			\item \textit{Python:} \url{https://github.com/LowinData/pyautodiff} and \url{https://pythonhosted.org/algopy/}
+			\item \textit{C++:} overloading \url{http://www.fadbad.com/fadbad.html},\ldots
+			\item \textit{Matlab:} open source SCT (e.g. AdiMat) not very good.  Use Tomlab/MAD instead, coupled with the Tomlab optimizer.
+		\end{itemize}
+	\end{itemize}
+\end{frame}	
+\begin{frame}[fragile]	\frametitle{Getting Derivatives Directly in Tomlab}
+\begin{lstlisting}
+%Example function
+f = @(x) 3 * x  + exp(x);
+
+%Evaluating function
+x_val = 2.1;
+f(x_val)
+
+%Evaluating with derivative at x_val
+x = fmad(x_val, 1); %Seed, since dx/dx = 1
+f_val = f(x)
+
+%Extract (both calculated at same time)
+getvalue(f_val)
+getderivs(f_val)
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]	\frametitle{Black Magic? Is it Always so Easy?}
+	\begin{itemize}
+		\item Auto-differentiation works seamlessly for functions composed of an arbitrarily complicated \# of simple functions
+		\begin{itemize}
+			\item Just need analytical derivatives for the lowest-level functions
+			\item Functions of vector and matrices are no problem at all.  In fact, the field was designed for large numbers of variables/constraints and sparsity
+		\end{itemize}
+	\bigskip
+		\item Can you call other functions (with operator overloading)?
+		\begin{itemize}
+			\item Depends on how they were written.  Often no problem at all
+			\item If the functions assume arguments are numbers, there can be problems
+			\item Sometimes can fix the underlying code to make more generic (example)
+		\end{itemize}
+	\bigskip
+		\item Verboten: Iterations and fixed-points \textit{within a function}
+		\begin{itemize}
+			\item e.g. it can't differentiate an optimization step within a function
+			\item However, many algorithms can be re-written without nesting (e.g. nested fixed-point vs. MPEC for discrete-choice estimation)
+			\item Possible that simulation could be embedded (e.g. mixed-logit)\ldots
+		\end{itemize}
+	\end{itemize}
+\end{frame}	
+
+\begin{frame}	\frametitle{Fixing the Common Problem}
+	Bla...
+\end{frame}
+
+
+\begin{frame}	\frametitle{Adding a New Function}
+	What if I know the derivative of a function which isn't there?
+\end{frame}
+
+
+\begin{frame}	\frametitle{Sparsity}
+Bla...
+	\begin{itemize}
+		\item 
+	\end{itemize}
+\end{frame}
+
+\end{document}
