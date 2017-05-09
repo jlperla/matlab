@@ -42,7 +42,7 @@ end
 %% Solve linear least squares:
 %min( .5 | X beta - y|_2)
 
-Prob = llsAssign(X, y, [], [], "LLS Example"); %linear least squares, can pass in sparse matrices or use dense ones.
+Prob = llsAssign(X, y, [], [], 'LLS Example'); %linear least squares, can pass in sparse matrices or use dense ones.
 Prob.optParam.MaxIter = 5000; %Increasing the number of iterations, not required in general.
 Prob.PriLevOpt  = 1; %More information if higher
 

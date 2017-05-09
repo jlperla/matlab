@@ -175,6 +175,128 @@ S3(2,2) = 1;
 \end{minted}
 \end{frame}
 
+
+
+	\begin{frame}\frametitle{}
+	\bigskip
+	\bigskip
+	\bigskip	
+	\begin{center}
+		{\huge \emphcolor{Tomlab}}
+	\end{center}
+\end{frame}
+\begin{frame}[fragile]	\frametitle{What is in Tomlab?}
+	\begin{itemize}
+		\item Sadly, the Operations Research community keeps the best implementations closed-source
+		\item Collection of sparse/dense linear/nonlinear local/global constrained/unconstrained continuous/mixed-integer optimizers
+		\item Nonlinear methods have built in auto-differentiation
+		\item Repackages and resells state-of-the-art commercial products, and adds a few of its own which are high quality		
+		\item Several methods to solve the same type of problem, because you never know which one will work best.  Easy to swap
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]	\frametitle{What Types of Problems?}
+	See \url{http://tomopt.com/docs/TOMLAB_QUICKGUIDE.pdf}. 
+	\begin{itemize}
+		\item Programming = Optimizer in OR
+		\item Linear Programming (LP) and Mixed-Integer LP (MILP)
+		\item Constrained Nonlinear Programming (NLP)
+		\item Unconstrained Global Optimization (glb)
+		\item Linear Least Squares (LLS)
+		\item Nonlinear Least Squares (NLLS)
+		\item Solving systems of equations generally uses NLLS
+		\item \ldots and many others (semi-definite, quadratic, etc.)
+	\end{itemize}
+\medskip
+	Most have sparse vs. dense algorithms, and constrained vs. unconstrained
+	\begin{itemize}
+		\item Read docs to find best fit for your particular problem
+		\item Always use appropriate constraints (none, box-bounded, linear, etc.)
+		\item For borderline sparse problems, sometimes dense works better
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]	\frametitle{Purchased Packages}
+	See \url{http://tomopt.com/tomlab/products/}
+	\begin{itemize}
+		\item Stanford 
+		Systems Optimization Laboratory (SOL):\\SNOPT, NPSOL, NLSSOL, LSSOL\ldots
+		\item Knitro.  Good for big problems, and complementarity conditions
+		\item MAD (auto-differentiation)
+		\item LGO and CGO (global optimizers, costly and otherwise)
+		\item For a given problem type, tomlab will list available algorithms
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]	\frametitle{Linear Least Squares (i.e. Regression)}
+
+	\begin{align*}
+	\min_x &\frac{1}{2}\norm{C x - d}_2\\
+	\st & x_L \leq x \leq x_U\\
+	& b_L \leq A x \leq b_U
+	\end{align*}
+	
+	\begin{itemize}
+		\item Little benefit over stata until problems get large or sparse
+		\item Though if there are linear constraints, $A$, may be helpful
+		\item Major benefit for large, sparse $C$
+		\item See ``Section 11. LLS Problem'' in \url{http://tomopt.com/docs/TOMLAB_QUICKGUIDE.pdf}
+	\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]	\frametitle{Example: Two-way fixed Effect}
+
+
+	\begin{itemize}
+		\item 	Use student, $i$, and instructor, $j$ fixed effects with observables
+			$$
+		\text{grade}_{ij} = \text{observables}_{ij} + \text{student}_i + \text{instuctor}_j + \epsilon_{ij}
+		$$
+		\item $300$K observations for $36$K students and $945$ instructors
+		\item Took about a day to solve in Stata
+		\item See \verb!teacher_student_fixed_effect.m! example for generating sparse matrix.  Given \verb!id1! student id, and \verb!id1! instructor id.  Key code:
+	\end{itemize}
+\begin{minted}[fontsize=\footnotesize]{matlab}
+%Preallocate a sparse matrix
+%Total number of observables with indicators for the two types.
+X = sparse(N_observations, N_observables + N_students + N_teachers); 
+
+%Filling in indicators for the matches
+for i=1:N_observations
+X(i, N_observables + id1(i)) = 1; %set student indicator
+X(i, N_observables + N_students + id2(i)) = 1; %sets instructor indicator
+end
+\end{minted}
+ \end{frame}
+
+\begin{frame}[fragile]	\frametitle{Solving LLS in Tomlab}
+	\begin{itemize}
+		\item Given $X$ and $y$ such that $\min_\beta\norm{X \beta - y}_2$
+		\item Ensure $X$ loaded sparse, with each row having 2 indicators
+	\end{itemize}
+\begin{minted}[fontsize=\footnotesize]{matlab}
+%linear least squares, can pass in sparse matrices or use dense
+% call XXXAssign for problem type XXX
+Prob = llsAssign(X, y, [], [], 'LLS Example'); 
+
+%Can change settings.  See tomlab documentation
+Prob.optParam.MaxIter = 5000; %optional, increase iterations
+Prob.PriLevOpt  = 1; %optional, gives more information if higher
+
+%Run, passing in the algorithm type
+%Takes about 10-20 seconds to run, instead of a day.  Not even tweaked
+Result = tomRun('Tlsqr', Prob); %intended for sparse unconstrained LLS
+beta = Result.x_k;
+ 
+
+%Tried alternative methods.  Easy to swap
+%Result = tomRun('snopt', Prob); %Tlsqr works much better here
+\end{minted}
+\end{frame}
+	
+	
+		
 	\begin{frame}\frametitle{}
 	\bigskip
 	\bigskip
@@ -183,11 +305,10 @@ S3(2,2) = 1;
 		{\huge \emphcolor{AD with Tomlab }}
 	\end{center}
 \end{frame}
-
 \begin{frame}[fragile]	\frametitle{Using AD Directly in Tomlab}
 	\begin{itemize}
 	\item Keep in mind that optimizers/solvers in Tomlab do this automatically
-	\item But it having trouble with optimizer calls, can test function separately
+	\item But if having trouble with optimizer calls, can test function separately
 	\end{itemize}
 	\begin{minted}[fontsize=\footnotesize]{matlab}
 %Example function.  Also works fine with separate files/function defs
@@ -240,17 +361,17 @@ getderivs(f_val)
 
 \begin{minted}[fontsize=\footnotesize]{matlab}
 madinitglobals; %Need to run for auto-differentiation to work
-x_val = 2.1;
-x = fmad(x_val, 1); %Seed, since dx/dx = 1
+x_val = [2.1;3.0];
+x = fmad(x_val, eye(2,2)); %Seeds with derivatives
 
 %Extract (both calculated at same time)
 f_val = f_func(x)
 
 function y = f_func(x)
-	%x = [1;2]; %Don't do this!!!!!!
-	%y = zeros(2,1) %Don't do this!!!!!
-	%y(1) = x.^2; %careful not to preallocate as double
-	y = x.^2; %This leaves x, y generic
+%x = 1; %Don't do this!!!!!!
+%y = zeros(1,1) %Don't do this!!!!!
+%y(1) = x.^2; %careful not to preallocate as double
+y = x.^2; %This leaves x, y generic
 end
 \end{minted}	
 
