@@ -306,6 +306,7 @@ beta = Result.x_k;
 		{\huge \emphcolor{Constrained Optimization }}
 	\end{center}
 \end{frame}
+
 \begin{frame}[fragile]	\frametitle{Nonlinear Programming (NLP)}
 Given $f : \R^N \to \R$ and $c : \R^N \to \R^M$
 	\begin{align*}
@@ -353,11 +354,11 @@ x_0 = 1.1*ones(N,1); %Some initial conditions
 madinitglobals; %Need to run for auto-differentiation to work.
 Prob = conAssign(objective, [], [], [], x_L, x_U, 'Portfolio example',...
    x_0, [], [], [], [], [], constraint, [], [], [], kappa, kappa);
-Prob.ADObj = 1; % calculate gradient of f(x) with AD
-Prob.ADCons = 1; % calculated jacobian of c(x) with AD
+Prob.ADObj = 1; % Gradient with AD. ADObj = -1 for Hessian
+Prob.ADCons = 1; % Jacobian with AD. ADCons = -1 for constraint Lagrangian 
 
 %Run type
-Result = tomRun('knitro', Prob); %Choose algorithm.  See tomlab for options
+Result = tomRun('knitro', Prob); %Choose algorithm. See tomlab for options
 x_optimal = Result.x_k;
 
 %Result = tomRun('npsol', Prob, 1) %Could try another algorithm
@@ -366,8 +367,9 @@ x_optimal = Result.x_k;
 \end{frame}
 
 \begin{frame}[fragile]	\frametitle{Using External Functions and Fixed Parameters}
-Optionally, the objective/constraint are passed the Problem.
+
 \begin{minted}[fontsize=\footnotesize]{matlab}
+%Alaternatively, the objective/constraint can be in separate files
 %Assumption is that vectors alpha/sigma/kappa attached to problem
 
 %File: portfolio_objective.m
@@ -395,15 +397,67 @@ Prob.sigma = sigma;
 Prob.kappa = kappa;
 
 %Setup AD
-Prob.ADObj = 1; % Gradient calculated with AD
-Prob.ADCons = 1; % Jacobian calculated with AD
+Prob.ADObj = 1; % Gradient with AD. ADObj = -1 for Hessian
+Prob.ADCons = 1; % Jacobian with AD. ADCons = -1 for constraint Lagrangian 
 
 %Run the optimizer
 Result = tomRun('knitro', Prob); %The last 	
 \end{minted}	
 \end{frame}	
 	
-		
+\begin{frame}\frametitle{}
+	\bigskip
+	\bigskip
+	\bigskip	
+	\begin{center}
+		{\huge \emphcolor{Systems of Equations and NLLS}}
+	\end{center}
+\end{frame}
+
+\begin{frame}[fragile]	\frametitle{Nonlinear Least Squares (NLLS)}
+	Given residual $r : \R^N \to \R^M$ and $c : \R^N \to \R^P$
+	\begin{align*}
+		\min_x &\set{\frac{1}{2}r(x)^T r(x)}\\
+		\st & x_L \leq x \leq x_U\\
+		& b_L \leq A x \leq b_U\\
+		& c_L \leq c(x) \leq c_U
+	\end{align*}
+	
+	Also for solving system of equations (potentially with inequalities):
+	\begin{align*}
+		r(x) = \mathbf{0}
+	\end{align*}
+	\begin{itemize}
+		\item See ``Section 13. NLLS Problem'' in \url{http://tomopt.com/docs/TOMLAB_QUICKGUIDE.pdf}
+		\item Can solve very large problems, with/without constraints
+%		\item No Hessian information is used in algorithms, so just gradient/jacobian.
+%		\item If constraints are bounds, use $x_L, x_U$.  If linear, use $A$.  Equality set $b_L(m) = b_U(m)$ where appropriate.  No bounds, leave unconstrained 
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]	\frametitle{Solving Functional Equations}
+	\begin{itemize}
+\item	One important use of this is solving functional equations of the form
+	$$\Phi(f) = \mathbf{0}$$
+	\begin{itemize}
+		\item Where $f : \R^N \to \R^M$ and $\Phi$ is an operator $\Phi : \C(\R^N) \to \R^P$
+		\item Could include differential equations, difference equations, etc.
+	\end{itemize}
+\item To solve, can approximate $f$ with a basis.  Collocation methods, etc.
+\begin{itemize}
+	\item e.g. $f(x) \approx \sum_{q=1}^{Q}d_q P_q(x)$
+	\item Where $P_q(x)$ is a polynomial/spline/finite-element basis
+	\item $d_q$ are the unknown coefficients to solve for
+\end{itemize}
+\item Then, problem is to find the coefficients
+$$
+\min_{d} \set{\frac{1}{2}\Phi(d)^T \Phi(d)}
+$$
+\item Since for fixed $x_n$ nodes, can usually evaluate $P_q$ through linear algebra can use AD on $\Phi(d)$
+\item Note: if $\Phi(d)$ is a linear operator (e.g. linear PDEs) can use sparse LLS.  How huge numerical PDEs with millions of points are solved.
+\end{itemize}
+\end{frame}		
+
 \begin{frame}\frametitle{}
 	\bigskip
 	\bigskip
