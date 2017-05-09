@@ -280,14 +280,14 @@ end
 %linear least squares, can pass in sparse matrices or use dense
 help llsAssign %Can see options, if you wish.  Or use manual
 
-% call XXXAssign for problem type XXX
+% tomlab convention, call XXXAssign for problem type XXX
 Prob = llsAssign(X, y, [], [], 'LLS Example'); 
 
 %Can change settings.  See tomlab documentation
 Prob.optParam.MaxIter = 5000; %optional, increase iterations
 Prob.PriLevOpt  = 1; %optional, gives more information if higher
 
-%Run, passing in the algorithm type
+%Tomlab convention: tomRun, passing in the algorithm type and problem
 %Takes about 10-20 seconds to run, instead of a day.  Not even tweaked
 Result = tomRun('Tlsqr', Prob); %intended for sparse unconstrained LLS
 beta = Result.x_k;
@@ -298,6 +298,110 @@ beta = Result.x_k;
 
 \end{frame}
 	
+\begin{frame}\frametitle{}
+	\bigskip
+	\bigskip
+	\bigskip	
+	\begin{center}
+		{\huge \emphcolor{Constrained Optimization }}
+	\end{center}
+\end{frame}
+\begin{frame}[fragile]	\frametitle{Nonlinear Programming (NLP)}
+Given $f : \R^N \to \R$ and $c : \R^N \to \R^M$
+	\begin{align*}
+		\min_x &\set{f(x)}\\
+		\st & x_L \leq x \leq x_U\\
+		& b_L \leq A x \leq b_U\\
+		& c_L \leq c(x) \leq c_U
+	\end{align*}
+	
+	\begin{itemize}
+		\item See ``Section 7. NLP Problem'' in \url{http://tomopt.com/docs/TOMLAB_QUICKGUIDE.pdf}
+		\item Can solve large problems in general with dense solvers (e.g. tens, hundreds, thousands of variables depending on structure)
+		\item Can solve enormous problems if Hessian of $f(x)$, Jacobian of $c(x)$ sparse (e.g. hundreds of thousands or millions of variables)
+		\item If constraints are bounds, use $x_L, x_U$.  If linear, use $A$.  Equality set $b_L(m) = b_U(m)$ where appropriate.  No bounds, leave unconstrained 
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]	\frametitle{Example: Porfolio Choice under Rational Inattention}
+	\begin{itemize}
+		\item Entropy constraint, $\kappa$ and signal variances, $\sigma_n$, weights $\alpha_n$
+		\item Choose precision $x_n$ 
+\begin{align*}
+\min_{\set{x_n}}&\sum_{n=1}^N \alpha_n^2 x_n^2\\
+\st & \frac{1}{2}\sum_{n=1}^{N}\left(\log\sigma^2_n -  \log x^2_n\right) \leq \kappa\\
+& 0 < x_n < \infinity
+\end{align*}
+		\item Generate some $\set{\alpha_n,\sigma_n}$ and solve
+		\item How large for $N$?  Using \verb!fminsearch! naively, got to $N\approx 30$
+		\item Since the hessian is sparse, could potentially use specialized methods (but didn't even bother to play with that, just using AD)
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]	\frametitle{Solving in Tomlab (with Anonymous Functions)}
+\begin{minted}[fontsize=\footnotesize]{matlab}
+%...define kappa, alpha vector of length N, sigma vector of length n...
+objective = @(x) sum((x.^2).*(alpha.^2)); %Objective
+constraint = @(x) (1/2)*sum( log(sigma.^2) - log(x.^2) ); %Constraint
+
+%Bounds on x, and initial guess
+x_L = 1E-10 * ones(N,1); %Bounding a little above 0 since it takes logs.
+x_U = inf(N,1); %Upper bounds for x.
+x_0 = 1.1*ones(N,1); %Some initial conditions
+
+%Generate problem.  Use `help conAssign' to see arguments, or use manual
+madinitglobals; %Need to run for auto-differentiation to work.
+Prob = conAssign(objective, [], [], [], x_L, x_U, 'Portfolio example',...
+   x_0, [], [], [], [], [], constraint, [], [], [], kappa, kappa);
+Prob.ADObj = 1; % calculate gradient of f(x) with AD
+Prob.ADCons = 1; % calculated jacobian of c(x) with AD
+
+%Run type
+Result = tomRun('knitro', Prob); %Choose algorithm.  See tomlab for options
+x_optimal = Result.x_k;
+
+%Result = tomRun('npsol', Prob, 1) %Could try another algorithm
+
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]	\frametitle{Using External Functions and Fixed Parameters}
+Optionally, the objective/constraint are passed the Problem.
+\begin{minted}[fontsize=\footnotesize]{matlab}
+%Assumption is that vectors alpha/sigma/kappa attached to problem
+
+%File: portfolio_objective.m
+function f = portfolio_objective(x, Prob)
+  f = sum((x.^2).*(Prob.alpha .^2));
+end
+
+%File: portfolio_constraint.m
+function c = portfolio_constraint(x, Prob)
+  c = (1/2)*sum( log(Prob.sigma.^2) - log(x.^2) ) - Prob.kappa;
+end
+\end{minted}	
+\end{frame}	
+
+\begin{frame}[fragile]	\frametitle{Calling with External Functions}
+\begin{minted}[fontsize=\footnotesize]{matlab}
+%Changed to have c(x) = 0 for the constraint since in c(x)
+Prob = conAssign(@portfolio_objective, [], [], [], x_L, x_U, 'Example',...
+ x_0, [], [], [], [], [], @portfolio_constraint, [], [], [], 0, 0);
+
+%Put any constants into the Prob, available in the function
+%Can throw anything you want only Prob (e.g. vectors, cells, etc.)
+Prob.alpha = alpha;
+Prob.sigma = sigma;
+Prob.kappa = kappa;
+
+%Setup AD
+Prob.ADObj = 1; % Gradient calculated with AD
+Prob.ADCons = 1; % Jacobian calculated with AD
+
+%Run the optimizer
+Result = tomRun('knitro', Prob); %The last 	
+\end{minted}	
+\end{frame}	
 	
 		
 \begin{frame}\frametitle{}
