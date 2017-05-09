@@ -9,7 +9,14 @@
 %	\date{May 2017}
 %\date{} %Shows date and conditionally the revision.	
 \maketitle
-\section{General}
+	\begin{frame}\frametitle{}
+	\bigskip
+	\bigskip
+	\bigskip	
+	\begin{center}
+		{\huge \emphcolor{Auto-Differentiation(AD) }}
+	\end{center}
+\end{frame}
 \begin{frame}[fragile]	\frametitle{Derivatives and Numerical Methods}
 	There are two general types of algorithms for optimizers/solvers/etc.:
 	\begin{enumerate}
@@ -60,7 +67,7 @@ How to calculate derivatives for the objective and constraints?
 	\begin{itemize}
 		\item Not a form of finite-differences or numeric differentiation
 		\item Essentially analytical.  Repeated use of the chain-rule
-		\item Does not work for every function, but only evaluates $f(\cdot)$ once if it works
+		\item Does not work for every function, but only evaluates $f(\cdot)$ once if it works---i.e. $O(1)$ not $O(N\times M)$ for $f : \R^N \to \R^M$
 	\end{itemize}
 \end{enumerate}
 \end{frame}
@@ -113,11 +120,77 @@ $$
 			\item \textit{Matlab:} open source SCT (e.g. AdiMat) not very good.  Use Tomlab/MAD instead, coupled with the Tomlab optimizer.
 		\end{itemize}
 	\end{itemize}
-\end{frame}	
+\end{frame}
 
-\begin{frame}[fragile]	\frametitle{Getting Derivatives Directly in Tomlab}
+	\begin{frame}\frametitle{}
+	\bigskip
+	\bigskip
+	\bigskip	
+	\begin{center}
+		{\huge \emphcolor{Sparsity}}
+	\end{center}
+\end{frame}
+
+\begin{frame}[fragile]	\frametitle{Sparse Matrices and Methods}
+	\begin{itemize}
+		\item Many algorithms are specialized for matrices (or Jacobians or Hessians) with many $0$s---e.g. Gaussian elimination
+		\item  Only store non-zero values, but $0 \neq 0.0$ for optimizers
+		\item Not (usually) for storage, but rather specialized algorithms
+		\item For Jacobians and Hessians, can solve enormous (e.g. hundreds of thousands or millions) of variable systems
+		\begin{itemize}
+			\item But the more non-zeros, the more likely dense methods are preferable.
+		\end{itemize}
+
+				\item For example, $f: \R^N \to \R^N$ with $f(x) = \sqrt{x}$ point-wise
+				\begin{itemize}
+					\item Jacobian has $N$ non-zeros, while dense has $N^2$
+					\item Optimizers/solvers can use this to step in the right direction
+					\item Auto-differentiation will figure out the sparsity pattern of derivatives---i.e., which values are always $0$ for all inputs
+				\end{itemize}
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]	\frametitle{Sparse Matrices in Matlab}
+\begin{minted}[fontsize=\footnotesize]{matlab}
+%First, can convert dense matrix, and it drops the 0's.
+X = [1.0 0   0;
+     2.0 1.0 0];
+S = sparse(X)
+%S =
+%(1,1)        1
+%(2,1)        2
+%(2,2)        1
+
+%Or can take lists of indices and values,
+x_indices = [1; 2; 2];
+y_indices = [1; 1; 2];
+values = [1; 2; 1];
+S2 = sparse(x_indices, y_indices, values)
+
+%Or can preallocate and just reference in loops/etc.
+S3 = sparse(0,3);
+S3(1,1) = 1;
+S3(2,1) = 2;
+S3(2,2) = 1;
+\end{minted}
+\end{frame}
+
+	\begin{frame}\frametitle{}
+	\bigskip
+	\bigskip
+	\bigskip	
+	\begin{center}
+		{\huge \emphcolor{AD with Tomlab }}
+	\end{center}
+\end{frame}
+
+\begin{frame}[fragile]	\frametitle{Using AD Directly in Tomlab}
+	\begin{itemize}
+	\item Keep in mind that optimizers/solvers in Tomlab do this automatically
+	\item But it having trouble with optimizer calls, can test function separately
+	\end{itemize}
 	\begin{minted}[fontsize=\footnotesize]{matlab}
-%Example function
+%Example function.  Also works fine with separate files/function defs
 f = @(x) 3*x + exp(x);
 
 %Evaluating function
@@ -160,9 +233,9 @@ getderivs(f_val)
 
 \begin{frame}[fragile]	\frametitle{Keep Functions Generic}
 	\begin{itemize}
-		\item Remember, MAD replaces arguments with things that look like variables
-		\item Keep variables generic, don't overwrite with other types
+		\item Remember, MAD replaces arguments with things that look like variables.  Keep everything generic, don't overwrite with other types
 		\item Some internal matlab functions do this sort of thing
+		\item Sometimes can copy/paste others sourcecode and tweak
 	\end{itemize}
 
 \begin{minted}[fontsize=\footnotesize]{matlab}
@@ -174,8 +247,8 @@ x = fmad(x_val, 1); %Seed, since dx/dx = 1
 f_val = f_func(x)
 
 function y = f_func(x)
-	%x = 1; %Don't do this!!!!!!
-	%y = zeros(1,1) %Don't do this!!!!!
+	%x = [1;2]; %Don't do this!!!!!!
+	%y = zeros(2,1) %Don't do this!!!!!
 	%y(1) = x.^2; %careful not to preallocate as double
 	y = x.^2; %This leaves x, y generic
 end
@@ -200,16 +273,5 @@ end
  \end{frame}
 
 
-\begin{frame}	\frametitle{Adding a New Function}
-	What if I know the derivative of a function which isn't there?
-\end{frame}
-
-
-\begin{frame}	\frametitle{Sparsity}
-Bla...
-	\begin{itemize}
-		\item 
-	\end{itemize}
-\end{frame}
 
 \end{document}
