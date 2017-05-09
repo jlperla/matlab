@@ -1,22 +1,7 @@
 \documentclass[nofootline]{etk-presentation}
-\usepackage{etk-bib} %Include this if you want a bibliography 
-\usepackage{tabularx,pbox}
-\usepackage{framed}
-\usepackage{empheq}
 \usepackage{pstool}
-\usepackage{verbatim}
-\usepackage{listings}
+\usepackage[outputdir= {\detokenize{C:\Users\jlperla\AppData\Local\Temp}}]{minted}
 
-\lstset{language=matlab,
-	basicstyle=\footnotesize,
-%	frame=single,
-	breaklines=true,
-	breakatwhitespace=true,
-%	numbers=left,
-%	numberstyle=\tiny,
-%	xleftmargin=5mm,
-	tabsize=2
-}
 
 \begin{document}
 \title{Optimization, Auto-Differentiation, and Tomlab}
@@ -124,14 +109,16 @@ $$
 			\item \textit{Fortran:} usually needs SCT.  Many choices: e.g. \url{http://tapenade.inria.fr:8080/tapenade/index.jsp}
 			\item \textit{Python:} \url{https://github.com/LowinData/pyautodiff} and \url{https://pythonhosted.org/algopy/}
 			\item \textit{C++:} overloading \url{http://www.fadbad.com/fadbad.html},\ldots
+			\item \textit{R:} \url{https://cran.r-project.org/web/packages/madness/index.html}
 			\item \textit{Matlab:} open source SCT (e.g. AdiMat) not very good.  Use Tomlab/MAD instead, coupled with the Tomlab optimizer.
 		\end{itemize}
 	\end{itemize}
 \end{frame}	
+
 \begin{frame}[fragile]	\frametitle{Getting Derivatives Directly in Tomlab}
-\begin{lstlisting}
+	\begin{minted}[fontsize=\footnotesize]{matlab}
 %Example function
-f = @(x) 3 * x  + exp(x);
+f = @(x) 3*x + exp(x);
 
 %Evaluating function
 x_val = 2.1;
@@ -144,12 +131,12 @@ f_val = f(x)
 %Extract (both calculated at same time)
 getvalue(f_val)
 getderivs(f_val)
-\end{lstlisting}
-\end{frame}
+	\end{minted}
+ \end{frame}
 
 \begin{frame}[fragile]	\frametitle{Black Magic? Is it Always so Easy?}
 	\begin{itemize}
-		\item Auto-differentiation works seamlessly for functions composed of an arbitrarily complicated \# of simple functions
+		\item Auto-differentiation works seamlessly for functions composed of an arbitrarily complicated graph of simple functions
 		\begin{itemize}
 			\item Just need analytical derivatives for the lowest-level functions
 			\item Functions of vector and matrices are no problem at all.  In fact, the field was designed for large numbers of variables/constraints and sparsity
@@ -171,9 +158,46 @@ getderivs(f_val)
 	\end{itemize}
 \end{frame}	
 
-\begin{frame}	\frametitle{Fixing the Common Problem}
-	Bla...
-\end{frame}
+\begin{frame}[fragile]	\frametitle{Keep Functions Generic}
+	\begin{itemize}
+		\item Remember, MAD replaces arguments with things that look like variables
+		\item Keep variables generic, don't overwrite with other types
+		\item Some internal matlab functions do this sort of thing
+	\end{itemize}
+
+\begin{minted}[fontsize=\footnotesize]{matlab}
+madinitglobals; %Need to run for auto-differentiation to work
+x_val = 2.1;
+x = fmad(x_val, 1); %Seed, since dx/dx = 1
+
+%Extract (both calculated at same time)
+f_val = f_func(x)
+
+function y = f_func(x)
+	%x = 1; %Don't do this!!!!!!
+	%y = zeros(1,1) %Don't do this!!!!!
+	%y(1) = x.^2; %careful not to preallocate as double
+	y = x.^2; %This leaves x, y generic
+end
+\end{minted}	
+
+ \end{frame}
+
+\begin{frame}[fragile]	\frametitle{Missing Function (with Analytical Derivative)}
+\begin{itemize}
+	\item See MAD manual, \url{http://tomopt.com/docs/TOMLAB_MAD.pdf}
+	\item See \verb!Adding Functions to the fmad Class!
+	\item Example, \verb!normcdf! isn't there, could add something like (untested):
+\end{itemize}
+
+\begin{minted}[fontsize=\footnotesize]{matlab}
+function y=normcdf(x)
+	y = x; %Needs to copy		
+	y.value= normcdf(x.value); %Evaluate given double 
+	y.deriv = normpdf(x.value) .* x.deriv; %Note chain rule
+end
+\end{minted}
+ \end{frame}
 
 
 \begin{frame}	\frametitle{Adding a New Function}
