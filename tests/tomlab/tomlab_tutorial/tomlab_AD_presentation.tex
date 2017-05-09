@@ -228,6 +228,28 @@ S3(2,2) = 1;
 	\end{itemize}
 \end{frame}
 
+\begin{frame}[fragile]	\frametitle{Setting up Tomlab}
+	\begin{itemize}
+		\item Use the UBC Matlab license
+		\begin{itemize}
+			\item If you aren't sure what you have, open matlab, type 'license' and check the nubmer is '924490'.  Otherwise, follow department/ubc instructions
+		\end{itemize}
+		\item Download Tomlab from the site or 
+		\begin{itemize}
+			\item \url{http://jesseperla.com/tomlab/tomlab-win64-setup.exe }
+			\item or \url{http://jesseperla.com/tomlab/tomlab-osx64-setup.dmg}
+		\end{itemize}
+		\item Run to install it
+		\item Put \url{http://jesseperla.com/tomlab/tomlab.lic} into main tomlab directory (with the startup.m file)
+		\item You now have two choices:
+		\begin{itemize}
+			\item Whenever you want to use it, run the \verb!startup.m! script in tomlab
+			\item Or, put the tomlab directory in your matlab path (with "Set Path" menu) and it runs on its own when starting matlab
+		\end{itemize}
+	\item Finally, Tomlab replaces the \verb!fmincon!, \verb!fsolve! etc. in matlab.  Avoid by delete/rename in the \verb!/optim! folder in installation
+	\end{itemize}
+\end{frame}
+
 \begin{frame}[fragile]	\frametitle{Linear Least Squares (i.e. Regression)}
 
 	\begin{align*}
@@ -334,7 +356,7 @@ Given $f : \R^N \to \R$ and $c : \R^N \to \R^M$
 & 0 < x_n < \infinity
 \end{align*}
 		\item Generate some $\set{\alpha_n,\sigma_n}$ and solve
-		\item How large for $N$?  Using \verb!fminsearch! naively, got to $N\approx 30$
+		\item How large for $N$?  Using \verb!fminsearch! naively, got to $N\approx 30$.  Sample code I give you solves with $N = 100,000$ in $\approx$ 20 seconds
 		\item Since the hessian is sparse, could potentially use specialized methods (but didn't even bother to play with that, just using AD)
 	\end{itemize}
 \end{frame}
