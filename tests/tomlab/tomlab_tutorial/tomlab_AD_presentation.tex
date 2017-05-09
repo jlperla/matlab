@@ -1,7 +1,7 @@
 \documentclass[nofootline]{etk-presentation}
 \usepackage{pstool}
-\usepackage[outputdir= {\detokenize{C:\Users\jlperla\AppData\Local\Temp}}]{minted}
-
+%\usepackage[outputdir= {\detokenize{C:\Users\"Jesse Perla"\AppData\Local\Temp}}]{minted}
+\usepackage{minted}
 
 \begin{document}
 \title{Optimization, Auto-Differentiation, and Tomlab}
@@ -150,8 +150,9 @@ $$
 	\end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]	\frametitle{Sparse Matrices in Matlab}
-\begin{minted}[fontsize=\footnotesize]{matlab}
+
+\begin{frame}[fragile] \frametitle{Sparse Matrices in Matlab}
+	\begin{minted}[fontsize=\footnotesize]{matlab}
 %First, can convert dense matrix, and it drops the 0's.
 X = [1.0 0   0;
      2.0 1.0 0];
@@ -172,12 +173,10 @@ S3 = sparse(0,3);
 S3(1,1) = 1;
 S3(2,1) = 2;
 S3(2,2) = 1;
-\end{minted}
+	\end{minted}
 \end{frame}
 
-
-
-	\begin{frame}\frametitle{}
+\begin{frame}\frametitle{}
 	\bigskip
 	\bigskip
 	\bigskip	
@@ -185,6 +184,7 @@ S3(2,2) = 1;
 		{\huge \emphcolor{Tomlab}}
 	\end{center}
 \end{frame}
+
 \begin{frame}[fragile]	\frametitle{What is in Tomlab?}
 	\begin{itemize}
 		\item Sadly, the Operations Research community keeps the best implementations closed-source
@@ -246,14 +246,15 @@ S3(2,2) = 1;
 
 
 \begin{frame}[fragile]	\frametitle{Example: Two-way fixed Effect}
-
-
 	\begin{itemize}
 		\item 	Use student, $i$, and instructor, $j$ fixed effects with observables
 			$$
 		\text{grade}_{ij} = \text{observables}_{ij} + \text{student}_i + \text{instuctor}_j + \epsilon_{ij}
 		$$
 		\item $300$K observations for $36$K students and $945$ instructors
+		\begin{itemize}
+			\item $\approx 37$K variables, \textbf{but only $2$ non-zero} (plus observables)
+		\end{itemize}
 		\item Took about a day to solve in Stata
 		\item See \verb!teacher_student_fixed_effect.m! example for generating sparse matrix.  Given \verb!id1! student id, and \verb!id1! instructor id.  Key code:
 	\end{itemize}
@@ -268,7 +269,7 @@ X(i, N_observables + id1(i)) = 1; %set student indicator
 X(i, N_observables + N_students + id2(i)) = 1; %sets instructor indicator
 end
 \end{minted}
- \end{frame}
+\end{frame}
 
 \begin{frame}[fragile]	\frametitle{Solving LLS in Tomlab}
 	\begin{itemize}
@@ -277,6 +278,8 @@ end
 	\end{itemize}
 \begin{minted}[fontsize=\footnotesize]{matlab}
 %linear least squares, can pass in sparse matrices or use dense
+help llsAssign %Can see options, if you wish.  Or use manual
+
 % call XXXAssign for problem type XXX
 Prob = llsAssign(X, y, [], [], 'LLS Example'); 
 
@@ -288,29 +291,30 @@ Prob.PriLevOpt  = 1; %optional, gives more information if higher
 %Takes about 10-20 seconds to run, instead of a day.  Not even tweaked
 Result = tomRun('Tlsqr', Prob); %intended for sparse unconstrained LLS
 beta = Result.x_k;
- 
 
 %Tried alternative methods.  Easy to swap
 %Result = tomRun('snopt', Prob); %Tlsqr works much better here
 \end{minted}
+
 \end{frame}
 	
 	
 		
-	\begin{frame}\frametitle{}
+\begin{frame}\frametitle{}
 	\bigskip
 	\bigskip
 	\bigskip	
 	\begin{center}
 		{\huge \emphcolor{AD with Tomlab }}
 	\end{center}
-\end{frame}
-\begin{frame}[fragile]	\frametitle{Using AD Directly in Tomlab}
+ \end{frame}
+
+\begin{frame}[fragile] \frametitle{Using AD Directly in Tomlab}
 	\begin{itemize}
 	\item Keep in mind that optimizers/solvers in Tomlab do this automatically
 	\item But if having trouble with optimizer calls, can test function separately
 	\end{itemize}
-	\begin{minted}[fontsize=\footnotesize]{matlab}
+\begin{minted}[fontsize=\footnotesize]{matlab}
 %Example function.  Also works fine with separate files/function defs
 f = @(x) 3*x + exp(x);
 
@@ -325,8 +329,9 @@ f_val = f(x)
 %Extract (both calculated at same time)
 getvalue(f_val)
 getderivs(f_val)
-	\end{minted}
- \end{frame}
+\end{minted}
+
+\end{frame}
 
 \begin{frame}[fragile]	\frametitle{Black Magic? Is it Always so Easy?}
 	\begin{itemize}
@@ -368,30 +373,33 @@ x = fmad(x_val, eye(2,2)); %Seeds with derivatives
 f_val = f_func(x)
 
 function y = f_func(x)
-%x = 1; %Don't do this!!!!!!
-%y = zeros(1,1) %Don't do this!!!!!
-%y(1) = x.^2; %careful not to preallocate as double
-y = x.^2; %This leaves x, y generic
+  y = x.^2; %This leaves x, y generic
+  %x = 1; %Don't do this!!!!!!
+  %y = zeros(1,1) %Don't do this!!!!!
+  %y(1) = x.^2; %indexing is fine (as long as you do not preallocate)
+  %One trick is to allocate as something like: y = x, then index
 end
 \end{minted}	
 
- \end{frame}
+\end{frame}
 
 \begin{frame}[fragile]	\frametitle{Missing Function (with Analytical Derivative)}
 \begin{itemize}
 	\item See MAD manual, \url{http://tomopt.com/docs/TOMLAB_MAD.pdf}
-	\item See \verb!Adding Functions to the fmad Class!
+	\item Section: \verb!"Adding Functions to the fmad Class"!
 	\item Example, \verb!normcdf! isn't there, could add something like (untested):
 \end{itemize}
 
 \begin{minted}[fontsize=\footnotesize]{matlab}
+%Add to the appropriate location in tomlab
+%This should work for vectors/matrices since using .*
 function y=normcdf(x)
 	y = x; %Needs to copy		
 	y.value= normcdf(x.value); %Evaluate given double 
 	y.deriv = normpdf(x.value) .* x.deriv; %Note chain rule
 end
 \end{minted}
- \end{frame}
+\end{frame}
 
 
 
