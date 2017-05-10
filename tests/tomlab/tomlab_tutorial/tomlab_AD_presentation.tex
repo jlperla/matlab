@@ -22,7 +22,7 @@
 		\item Derivative-free:
 		\begin{itemize}
 			\item e.g. Simplex and Nelder-Mead.  This is Matlab's \verb|fminsearch|
-			\item Also, ``costly global function'' optimization
+			\item Also, ``costly global function'' optimization and ``black box'' optimization where derivatives are not possible
 			\item Avoid at all costs (though sometimes don't have a choice)
 		\end{itemize}
 	\bigskip
@@ -30,14 +30,15 @@
 		\begin{itemize}
 			\item Pretty much every other algorithm, especially for large number of variables/constraints
 			\item Including global optimization techniques (which use derivatives locally)
+			\item Sometimes naive use of software is generating derivatives with finite differences without your knowledge
 		\end{itemize}	
 	\end{enumerate}
 \bigskip
 Key derivatives to calculate are:
 \begin{itemize}
 	\item Gradient of objective
-	\item Hessian of objective (nonlinear least squares and some algorithms only use gradient)
-	\item Jacobian of constraints
+	\item Hessian of objective (nonlinear least squares only uses gradient)
+	\item Jacobian, and sometimes Lagrangian, of constraints
 \end{itemize}
 
 
@@ -98,7 +99,7 @@ w_5 = w_3 + w_4 &
 \frac{d  w_5}{d x_1} = \frac{d  w_3}{d x_1} + \frac{d  w_4}{d x_1}
 \end{array}
 $$
-\item Generalizes to multiple variables.  AD takes source code and generates the derivatives at the same time (i.e. doesn't increase with \# variables)
+\item Generalizes to multiple variables.  AD takes source code and generates the derivatives at the same time it calculates the function value.%  Crucially, it at the same time (i.e. cost doesn't scale with \# vars)
 	\end{itemize}
 \end{frame}
 
@@ -189,7 +190,7 @@ S3(2,2) = 1;
 		\item Sadly, the Operations Research community keeps the best implementations closed-source
 		\item Collection of sparse/dense linear/nonlinear local/global constrained/unconstrained continuous/mixed-integer optimizers
 		\item Nonlinear methods have built in auto-differentiation
-		\item Repackages and resells state-of-the-art commercial products, and adds a few of its own which are high quality		
+		\item Repackages and resells state-of-the-art commercial products, and adds a few of its own (which tend to be high quality)
 		\item Several methods to solve the same type of problem, because you never know which one will work best.  Easy to swap
 	\end{itemize}
 \end{frame}
@@ -223,12 +224,13 @@ S3(2,2) = 1;
 		\item Knitro.  Good for big problems, and complementarity conditions
 		\item MAD (auto-differentiation)
 		\item LGO and CGO (global optimizers, costly and otherwise)
-		\item For a given problem type, tomlab will list available algorithms
+%		\item For a given problem type, tomlab will list available algorithms
 	\end{itemize}
+After installing tomlab, open up matlab and type \verb!tomRun! to get a list of all licensed (and recommended) solvers by problem type
 \end{frame}
 
 \begin{frame}[fragile]	\frametitle{Setting up Tomlab}
-	\begin{itemize}
+	\begin{enumerate}
 		\item Use the UBC Matlab license
 		\begin{itemize}
 			\item If you aren't sure what you have, open matlab, type 'license' and check the nubmer is '924490'.  Otherwise, follow department/ubc instructions
@@ -245,8 +247,11 @@ S3(2,2) = 1;
 			\item Whenever you want to use it, run the \verb!startup.m! script in tomlab
 			\item Or, put the tomlab directory in your matlab path (with "Set Path" menu) and it runs on its own when starting matlab
 		\end{itemize}
-	\item Finally, Tomlab replaces the \verb!fmincon!, \verb!fsolve! etc. in matlab.  Avoid by delete/rename in the \verb!/optim! folder in installation
+	\item Finally, Tomlab replaces the \verb!fmincon!, \verb!fsolve! etc. in matlab
+	\begin{itemize}
+		\item Avoid by deleting/renaming files in the \verb!/optim! folder after installation
 	\end{itemize}
+	\end{enumerate}
 \end{frame}
 
 \begin{frame}[fragile]	\frametitle{Linear Least Squares (i.e. Regression)}
@@ -390,7 +395,7 @@ x_optimal = Result.x_k;
 \begin{frame}[fragile]	\frametitle{Using External Functions and Fixed Parameters}
 
 \begin{minted}[fontsize=\footnotesize]{matlab}
-%Alaternatively, the objective/constraint can be in separate files
+%Alternatively, the objective/constraint can be in separate files
 %Assumption is that vectors alpha/sigma/kappa attached to problem
 
 %File: portfolio_objective.m
@@ -539,14 +544,14 @@ getderivs(f_val)
 		\begin{itemize}
 			\item Depends on how they were written.  Often no problem at all
 			\item If the functions assume arguments are numbers, there can be problems
-			\item Sometimes can fix the underlying code to make more generic (example)
+			\item Sometimes can fix the underlying code to make more generic
 		\end{itemize}
 	\bigskip
 		\item Verboten: Iterations and fixed-points \textit{within a function}
 		\begin{itemize}
-			\item e.g. it can't differentiate an optimization step within a function
+			\item e.g. it can't differentiate a nested optimization step within a function
 			\item However, many algorithms can be re-written without nesting (e.g. nested fixed-point vs. MPEC for discrete-choice estimation)
-			\item Possible that simulation could be embedded (e.g. mixed-logit)\ldots
+			\item Possible that simulation could be embedded (e.g. mixed-logit) but have never tried it
 		\end{itemize}
 	\end{itemize}
 \end{frame}	
@@ -596,5 +601,58 @@ end
 \end{frame}
 
 
+\begin{frame}\frametitle{}
+	\bigskip
+	\bigskip
+	\bigskip	
+	\begin{center}
+		{\huge \emphcolor{Documentation and Examples}}
+	\end{center}
+\end{frame}
+
+\begin{frame}[fragile]	\frametitle{Licenses}
+UBC Economics has purchased site licenses for the following products:
+\begin{itemize}
+	\item Base: \url{http://tomopt.com/tomlab/products/base/}
+	\item SOL: \url{http://tomopt.com/tomlab/products/sol/}
+	\item KNITRO: \url{http://tomopt.com/tomlab/products/knitro/}
+	\item LGO: \url{http://tomopt.com/tomlab/products/lgo/}
+	\item CGO: \url{http://tomopt.com/tomlab/products/cgo/}
+	\item MAD: \url{http://tomopt.com/tomlab/products/mad/}
+\end{itemize}
+If you have a problem type not covered by these solvers, tomlab is willing to let you try out additional solvers before adding them to a site (or individual) license.
+\end{frame}	
+
+\begin{frame}[fragile]	\frametitle{General Tomlab Documentation}
+Tomlab has excellent examples and documentation:
+	\begin{itemize}
+		\item Manuals: \url{http://tomopt.com/tomlab/download/manuals.php}
+		\item In particular, the Quickguide tells you how to get started with most problems:  \url{http://tomopt.com/docs/TOMLAB_QUICKGUIDE.pdf}
+		\item For more details, see \url{http://tomopt.com/docs/TOMLAB.pdf}
+		\item Finally, when tweaking with a product, see the specific guides
+		\item  For example, \url{http://tomopt.com/docs/TOMLAB_SOL.pdf} has every error code and option for the algorithms specific to the SOL solvers.
+	\end{itemize}	
+\end{frame}	
+
+\begin{frame}[fragile]	\frametitle{Tomlab Examples}
+	After installation, look inside of the main tomlab directory.
+	\begin{itemize}
+		\item 	Many of the examples are embedded in the \url{http://tomopt.com/docs/TOMLAB_QUICKGUIDE.pdf} and \url{http://tomopt.com/docs/TOMLAB.pdf}
+		\item The examples used in the quickguide are installed in tomlab at \verb!quickguide/! directory
+		\item Additionally, after installing tomlab look at \verb!examples! to see many test and example files.
+		\item See \verb!Contents.m! in both directories for a list of examples
+	\end{itemize}
+\end{frame}	
+	
+
+\begin{frame}[fragile]	\frametitle{These Slides and Examples}
+\url{http://jesseperla.com/tomlab/tomlab_AD_presentation.pdf}\\
+\url{http://jesseperla.com/tomlab/tomlab_AD_examples.zip}
+	\begin{itemize}
+			\item \verb!teacher_student_fixed_effect.m!: contains LLS example, including reading raw data and generating sparse matrix.  Raw data is in \verb!student_teacher_raw.mat!, and it  generates sparse data in \verb!teacher_student_data.mat!
+			\item \verb!portfolio_choice.m!: Includes all sorts of variations on the NLP problem discussed.  For the external functions, it calls \verb!portfolio_constraint.m! and \verb!portfolio_objective.m!
+	\end{itemize}
+	
+\end{frame}	
 
 \end{document}
