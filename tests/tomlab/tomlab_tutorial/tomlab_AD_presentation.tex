@@ -1,7 +1,6 @@
 \documentclass[nofootline]{etk-presentation}
 \usepackage{pstool}
-%\usepackage[outputdir= {\detokenize{C:\Users\"Jesse Perla"\AppData\Local\Temp}}]{minted}
-\usepackage{minted}
+\mintedwithaux %Loads the \usepackage{minted} with options for the auxilary files being moved.
 
 \begin{document}
 \title{Optimization, Auto-Differentiation, and Tomlab}
@@ -456,6 +455,21 @@ Result = tomRun('knitro', Prob); %The last
 %		\item If constraints are bounds, use $x_L, x_U$.  If linear, use $A$.  Equality set $b_L(m) = b_U(m)$ where appropriate.  No bounds, leave unconstrained 
 	\end{itemize}
 \end{frame}
+
+\begin{frame}[fragile]	\frametitle{Solving NLLS}
+	\begin{minted}[fontsize=\footnotesize]{matlab}
+%Residual
+r = @(x) x.^2 - [2; 1];	
+x_0 = [5; 10];
+%Create object
+Prob = clsAssign(r, [], [], [], [], 'NLLS example', x_0, zeros(2,1),[]);
+Prob.ADObj = 1; % Use AD
+
+%Solve it.
+Result = tomRun('nlssol', Prob, 1);
+	\end{minted}
+\end{frame}	
+	
 
 \begin{frame}[fragile]	\frametitle{Solving Functional Equations}
 	\begin{itemize}
