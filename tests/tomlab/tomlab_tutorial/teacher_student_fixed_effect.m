@@ -43,17 +43,40 @@ end
 %min( .5 | X beta - y|_2)
 
 Prob = llsAssign(X, y, [], [], 'LLS Example'); %linear least squares, can pass in sparse matrices or use dense ones.
+%For options, see http://tomopt.com/docs/TOMLAB.pdf page 229
 Prob.optParam.MaxIter = 5000; %Increasing the number of iterations, not required in general.
 Prob.PriLevOpt  = 1; %More information if higher
+%TODO: Play around with other options on the Prob type and the Tlsqr algorithms
 
 % This took a day to run in stata!
-Result = tomRun('Tlsqr', Prob); %intended for sparse unconstrained LLS.  Very good here.
-
+%See options in http://tomopt.com/docs/TOMLAB.pdf  See Section 8.5 for more information and variations on memory management.
+tic;
+Result = tomRun('Tlsqr', Prob); %intended for sparse unconstrained LLS using the LSQR method.  Very good here.
 beta = Result.x_k;
-
 disp('Estimated coefficient on age');
 beta(1:length(N_observables))
+disp('Estimated minima of the optimization problem');
+Result.f_k
+toc;
+
 
 %Result = tomRun('snopt', Prob); %Tlsqr works much better here.
 %Result = tomRun('lssol', Prob); %Dense linear least squares.  Good but not for this sort of problem if N's are large
 %Result = tomRun('nlssol', Prob); %'clsSolve' if constraint linear least squares.  Dense
+
+%% Use the builtin matlab one for comparison.  It does well here (same algorithm, actually)
+% The problem is I am not sure 
+max_iterations = 5000;
+tolerance = 1.0E-13; %To compare to tomlab tolerance?
+tic;
+[beta_ML,flag,relres,iter,resvec,lsvec] = lsqr(X,y, tolerance, max_iterations);
+toc;
+disp('Estimated coefficient on age');
+beta_ML(1:length(N_observables))
+disp('Estimated minima of the optimization problem');
+r = X * beta_ML - y;
+1/2 * r' * r %I think this is correct?
+
+%Can compare the minima with
+%Result.f_k - 1/2 * r' * r;
+%NOTE: With standard error bootstrapping, would we need to constants reestimate a version of this?  If so, then there may be different approaches which work better in those cases.
