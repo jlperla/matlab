@@ -1,9 +1,5 @@
-% $Rev: 1 $
-% $Date: 2015-01-29 15:42:05 -0800 (Thu, 29 Jan 2015) $
-% $LastChangedBy: jlperla $
-
 %See for genericity: http://stackoverflow.com/questions/19991279/permutations-of-parameters-i-e-cartesian-product-into-a-multi-dimensional-arr/
-function [parameter_names, parameter_arrays, parameter_permutations] = generate_experiment_parameters(experiments)
+function [parameter_names, parameter_arrays, parameter_permutations, parameter_index] = generate_experiment_parameters(experiments)
     num_experiment_parameters = length(experiments);
 
     %Extracts the names of parameters
@@ -24,4 +20,11 @@ function [parameter_names, parameter_arrays, parameter_permutations] = generate_
         [vecs{:}] = ndgrid(parameter_arrays{:});
         parameter_permutations = reshape(cat(numel(vecs)+1,vecs{:}),[],numel(vecs));
     end
+    
+    %Creates and index structure with the names in order.
+    parameter_index.num_experiment_parameters = num_experiment_parameters;
+    for(i = 1:num_experiment_parameters)
+        parameter_index = setfield(parameter_index, parameter_names{i}, i);
+    end
+
 end
