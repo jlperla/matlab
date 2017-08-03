@@ -1,13 +1,10 @@
-% $Rev: 88 $
-% $Date: 2016-08-03 10:26:18 -0700 (Wed, 03 Aug 2016) $
-% $LastChangedBy: jlperla $
-
-% Author: Jesse Perla (c) 2016
+% Author: Jesse Perla (c) 2016-2017
 % Use, modification and distribution are subject to the 
 % Boost Software License, Version 1.0. (See accompanying file 
 % LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-function [result, problem, all_results] = constrained_nls(method, f, x_0, constraints, parameters, settings)
+function [result, success, problem, all_results] = constrained_nls(method, f, x_0, constraints, parameters, settings)
+    success = false; %Assume failure.
 	%% The settings structure may have empty elements, so default if required.
     if ~isfield(settings, 'name')
         settings.name = '';
@@ -140,8 +137,14 @@ function [result, problem, all_results] = constrained_nls(method, f, x_0, constr
     %Pick the best among the sucessful result
     all_successful_f = all_results.f_sols;
     all_successful_f(all_results.success ~= true) = NaN;
-    [~, min_i] = min(all_successful_f);
-    %Change the problem initial condition back to the best, as well.    
-    problem.x_0 = x_0(min_i, :);
-    result = all_results.results{min_i};
+    
+    success = max(~isnan(all_successful_f)); %Success 
+    if(success)
+        [~, min_i] = min(all_successful_f);
+        %Change the problem initial condition back to the best, as well.    
+        problem.x_0 = x_0(min_i, :);
+        result = all_results.results{min_i};
+    else
+        result = NaN;
+    end
 end
