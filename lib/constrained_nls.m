@@ -6,39 +6,40 @@
 function [result, success, problem, all_results] = constrained_nls(method, f, x_0, constraints, parameters, settings)
     success = false; %Assume failure.
 	%% The settings structure may have empty elements, so default if required.
-    if ~isfield(settings, 'name')
+    if nargin<6 || ~isfield(settings, 'name')
         settings.name = '';
     end 
-    if ~isfield(settings, 'print_level')
+    if nargin<6 || ~isfield(settings, 'print_level')
         settings.print_level = 1;
     end
-    if ~isfield(constraints, 'A')
+    if nargin<5
+        parameters = [];
+    end
+    
+    if nargin<4 || ~isfield(constraints, 'A')
         constraints.A = [];
     end     
-    if ~isfield(constraints, 'b_L')
+    if nargin<4 || ~isfield(constraints, 'b_L')
         constraints.b_L = [];
     end
-    if ~isfield(constraints, 'b_H')
+    if nargin<4 || ~isfield(constraints, 'b_H')
         constraints.b_H = [];
     end
-    if ~isfield(constraints, 'x_L')
+    if nargin<4 || ~isfield(constraints, 'x_L')
         constraints.x_L = [];
     end
-    if ~isfield(constraints, 'x_H')
+    if nargin<4 || ~isfield(constraints, 'x_H')
         constraints.x_H = [];
     end    
-    if ~isfield(settings, 'use_MAD');
+    if nargin<4 || ~isfield(settings, 'use_MAD');
         settings.use_MAD = true;
     end
-    if ~isfield(constraints, 'y') %The list of y's to hit.
+    if nargin<4 || ~isfield(constraints, 'y') %The list of y's to hit.
         dummy_problem.parameters = parameters; %Need to call f with parameters of some sort.
         dummy_problem.settings = settings;
         constraints.y = zeros(length(f(x_0(1,:), dummy_problem)),1);
     end
     
-   
-    
-
     %% Knitro is having trouble with the Inf on constraints, so ...
     if(strcmp(method, 'knitro'))
        knitro_Inf = 1E15; %Knitro isn't accepting Infinity                
